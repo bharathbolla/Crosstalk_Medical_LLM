@@ -7,7 +7,7 @@ from .collators import NERCollator, SpanCollator, RECollator, QACollator
 # Import all task parsers to register them
 from .bc2gm import BC2GMDataset
 from .jnlpba import JNLPBADataset
-from .chemprot import ChemProtDataset
+# from .chemprot import ChemProtDataset  # Disabled: Parquet URL compatibility issues
 from .ddi import DDIDataset
 from .gad import GADDataset
 from .hoc import HoCDataset
@@ -25,10 +25,10 @@ __all__ = [
     "SpanCollator",
     "RECollator",
     "QACollator",
-    # Task datasets
+    # Task datasets (7 active, ChemProt disabled)
     "BC2GMDataset",
     "JNLPBADataset",
-    "ChemProtDataset",
+    # "ChemProtDataset",  # Disabled: Parquet URL compatibility issues
     "DDIDataset",
     "GADDataset",
     "HoCDataset",
