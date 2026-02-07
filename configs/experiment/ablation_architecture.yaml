@@ -1,0 +1,68 @@
+# Architecture Ablation Study (A1-A4)
+# CRITICAL: All variants MUST have comparable trainable parameter counts
+
+ablations:
+  description: "Test components of shared-private adapter architecture"
+
+  parameter_parity_check: true
+  tolerance: 0.05  # ±5% of target params
+  target_params: 25000000  # ~25M trainable for Llama-3.2-3B
+
+  A1_shared_only:
+    name: "Shared adapter only"
+    description: "Single shared adapter with increased rank to match params"
+    shared: true
+    shared_rank: 24  # increased to match param count
+    private: false
+    fusion: null
+    expected_params: 24084480
+
+  A2_private_only:
+    name: "Private adapters only"
+    description: "Task-specific adapters only, no shared knowledge"
+    shared: false
+    private: true
+    private_rank: 24  # per task, increased to match param count
+    fusion: null
+    expected_params: 24084480
+
+  A3_shared_private_no_fusion:
+    name: "Shared + Private without fusion"
+    description: "Both adapter types, simple concatenation"
+    shared: true
+    shared_rank: 16
+    private: true
+    private_rank: 8
+    fusion: null  # simple concat instead
+    expected_params: 16859136
+
+  A4_shared_private_fusion:
+    name: "Shared + Private with gated fusion"
+    description: "Full architecture with lightweight fusion"
+    shared: true
+    shared_rank: 16
+    private: true
+    private_rank: 8
+    fusion: "gated"  # gated residual (only ~31K params)
+    expected_params: 16889856
+
+training:
+  # Same training config for all ablations (fair comparison)
+  epochs: 5
+  learning_rate: 2e-5
+  warmup_ratio: 0.1
+  eval_every_n_steps: 200
+  checkpoint_every_n_steps: 200
+
+multitask:
+  sampling: "temperature"
+  temperature: 2.0
+  loss_weighting: "uncertainty"
+
+gradient:
+  conflict_resolution: "pcgrad"
+
+logging:
+  token_logging: true
+  log_gradient_conflicts: true
+  wandb_project: "medical-mtl-ablation"

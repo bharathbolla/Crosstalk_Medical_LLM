@@ -1,0 +1,26 @@
+task:
+  name: "semeval2017t3"
+  full_name: "SemEval 2017 Task 3 - Community Question Answering"
+  type: "ranking"
+  task_level: 2  # Level 2 for hierarchical MTL
+
+  data:
+    source: "physionet"
+    train_size: 6000
+    dev_size: 800
+    test_size: 3000
+
+  evaluation:
+    primary_metric: "map"
+    secondary_metrics: ["mrr", "p@1", "p@5"]
+    eval_script: "official"
+    published_sota: 0.882
+    sota_system: "KeLP"
+
+  preprocessing:
+    max_seq_len: null
+    entity_handling: "sequence"  # question-answer pairs
+
+  contamination:
+    risk: "medium"
+    zero_shot_threshold: 0.62

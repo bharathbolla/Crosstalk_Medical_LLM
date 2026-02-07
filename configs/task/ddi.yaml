@@ -1,0 +1,25 @@
+task:
+  name: "ddi"
+  full_name: "DDI Extraction 2013 - Drug-Drug Interactions"
+  type: "relation"
+  task_level: 2  # Level 2 for hierarchical MTL
+
+  data:
+    source: "public"
+    url: "https://github.com/isegura/DDICorpus"
+    train_size: 2937
+    dev_size: 1004
+    test_size: 979
+
+  evaluation:
+    primary_metric: "relation_f1"
+    secondary_metrics: ["precision", "recall"]
+    published_sota: 0.799  # BioBERT
+
+  preprocessing:
+    max_seq_len: 512
+    entity_handling: "relation"
+
+  contamination:
+    risk: "low"
+    zero_shot_threshold: 0.56

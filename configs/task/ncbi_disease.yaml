@@ -1,0 +1,25 @@
+task:
+  name: "ncbi_disease"
+  full_name: "NCBI Disease Corpus - Disease NER"
+  type: "ner"
+  task_level: 1  # Level 1 for hierarchical MTL
+
+  data:
+    source: "public"
+    url: "https://www.ncbi.nlm.nih.gov/CBBresearch/Dogan/DISEASE/"
+    train_size: 593
+    dev_size: 100
+    test_size: 100
+
+  evaluation:
+    primary_metric: "strict_f1"
+    secondary_metrics: ["precision", "recall"]
+    published_sota: 0.893  # BioBERT
+
+  preprocessing:
+    max_seq_len: 512
+    entity_handling: "bio"
+
+  contamination:
+    risk: "low"
+    zero_shot_threshold: 0.62

@@ -1,0 +1,26 @@
+model:
+  name: "microsoft/Phi-3-mini-4k-instruct"
+  short_name: "phi3mini"
+  params: 3.8e9
+
+  quantization:
+    enabled: false  # FP16 fits on T4
+    bits: null
+    quant_type: null
+    compute_dtype: "float16"
+    double_quant: false
+
+  lora:
+    rank: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+  training:
+    max_batch_size_t4: 12
+    gradient_checkpointing: false
+    flash_attention: true
+
+  unsloth:
+    compatible: true
+    use_for: ["S1", "S2"]

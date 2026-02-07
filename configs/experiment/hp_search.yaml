@@ -1,0 +1,76 @@
+# Hyperparameter Search Space
+
+hp_search:
+  description: "Search space for hyperparameter tuning"
+
+  # Only top 3 models get full search (GPU budget constraint)
+  full_search_models: 3
+  reduced_search_models: 3  # remaining models get reduced search
+
+  # Search method
+  method: "grid"  # or "random" for faster search
+  n_trials_random: 20  # if using random search
+
+  # Search space
+  parameters:
+    learning_rate:
+      values: [1e-5, 2e-5, 5e-5, 1e-4]
+      default: 2e-5
+
+    lora_rank:
+      values: [8, 16, 32]  # reduced from [8,16,32,64] to save GPU
+      default: 16
+
+    batch_size:
+      values: [16, 32]  # effective batch size via gradient accumulation
+      default: 16
+
+    epochs:
+      values: [3, 5]
+      default: 5
+
+    warmup_ratio:
+      values: [0.05, 0.1]
+      default: 0.1
+
+    # Multi-task specific
+    sampling_strategy:
+      values: ["proportional", "uniform", "temperature"]
+      default: "temperature"
+      applicable_to: ["multi_task"]
+
+    temperature:
+      values: [1.0, 2.0, 5.0]
+      default: 2.0
+      applicable_to: ["multi_task"]
+      conditional_on: {"sampling_strategy": "temperature"}
+
+    loss_weighting:
+      values: ["equal", "uncertainty"]
+      default: "uncertainty"
+      applicable_to: ["multi_task"]
+
+  # Reduced search for models 4-6 (budget constraint)
+  reduced_space:
+    learning_rate: [2e-5, 5e-5]
+    lora_rank: [16]  # fixed
+    batch_size: [16]  # fixed
+    epochs: [5]  # fixed
+    warmup_ratio: [0.1]  # fixed
+
+  # Early stopping for HP search trials
+  early_stopping:
+    enabled: true
+    patience: 2
+    metric: "dev_primary_metric"
+    mode: "max"
+
+  # Resource constraints
+  constraints:
+    max_time_per_trial_hours: 4
+    max_vram_gb: 15  # leave 1GB headroom on T4
+    checkpoint_best_only: true
+
+  logging:
+    wandb_sweep: true
+    wandb_project: "medical-mtl-hpsearch"

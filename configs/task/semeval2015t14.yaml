@@ -1,0 +1,26 @@
+task:
+  name: "semeval2015t14"
+  full_name: "SemEval 2015 Task 14 - Analysis of Clinical Text (Disorders)"
+  type: "span"
+  task_level: 1  # Level 1 for hierarchical MTL
+
+  data:
+    source: "physionet"
+    train_size: 5000
+    dev_size: 500
+    test_size: 3000
+
+  evaluation:
+    primary_metric: "span_f1"
+    secondary_metrics: ["strict_f1", "relaxed_f1"]
+    eval_script: "official"
+    published_sota: 0.758
+    sota_system: "ezDI"
+
+  preprocessing:
+    max_seq_len: null
+    entity_handling: "span"  # supports discontiguous entities
+
+  contamination:
+    risk: "high"
+    zero_shot_threshold: 0.53

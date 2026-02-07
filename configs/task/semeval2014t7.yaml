@@ -1,0 +1,26 @@
+task:
+  name: "semeval2014t7"
+  full_name: "SemEval 2014 Task 7 - Analysis of Clinical Text"
+  type: "ner"
+  task_level: 1  # Level 1 for hierarchical MTL
+
+  data:
+    source: "physionet"
+    train_size: 9000
+    dev_size: 1000
+    test_size: 7000
+
+  evaluation:
+    primary_metric: "strict_f1"
+    secondary_metrics: ["relaxed_f1", "accuracy"]
+    eval_script: "official"
+    published_sota: 0.813
+    sota_system: "UTH-CCB"
+
+  preprocessing:
+    max_seq_len: null  # Set by analyze_seq_lengths.py
+    entity_handling: "bio"
+
+  contamination:
+    risk: "high"  # public since 2014
+    zero_shot_threshold: 0.57  # 70% of SOTA

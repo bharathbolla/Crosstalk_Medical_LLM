@@ -1,0 +1,23 @@
+strategy:
+  name: "S1_single_task"
+  type: "single_task"
+  description: "One LoRA adapter per task. Baseline for comparison."
+
+  adapter:
+    shared: false
+    private: true
+    private_rank: 16
+
+  training:
+    epochs: 5
+    early_stopping_patience: 3
+    eval_every_n_steps: 200
+    checkpoint_every_n_steps: 200
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+
+  logging:
+    token_logging: true  # CRITICAL for RQ5
+    log_tokens_per_step: true
+    log_cumulative_tokens: true
+    wandb_project: "medical-mtl"

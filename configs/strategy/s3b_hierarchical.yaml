@@ -1,0 +1,40 @@
+strategy:
+  name: "S3b_hierarchical_mtl"
+  type: "multi_task"
+  description: "Hierarchical: Level 1 (NER) feeds Level 2 (RE/QA). PRIMARY NOVELTY."
+
+  architecture:
+    type: "hierarchical"
+    shared_rank: 16
+    level1_rank: 8  # entity-level features
+    level2_rank: 8  # relation-level features
+    cross_level_attention: true
+    detach_l1_for_l2: false  # allow gradients to flow
+
+  gradient:
+    conflict_resolution: "pcgrad"
+    log_conflicts: true
+    log_conflict_frequency: 100
+
+  multitask:
+    sampling: "temperature"
+    temperature: 2.0
+    loss_weighting: "uncertainty"
+    task_grouping:
+      level1: ["semeval2014t7", "semeval2015t14", "semeval2021t6_level1"]
+      level2: ["semeval2016t12", "semeval2017t3", "semeval2021t6_level2"]
+
+  training:
+    epochs: 5
+    early_stopping_patience: 3
+    eval_every_n_steps: 200
+    checkpoint_every_n_steps: 200
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+
+  logging:
+    token_logging: true
+    log_tokens_per_task: true
+    log_gradient_conflicts: true
+    log_cross_level_attention: true
+    wandb_project: "medical-mtl"

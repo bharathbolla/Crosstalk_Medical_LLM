@@ -1,0 +1,38 @@
+task:
+  name: "semeval2021t6"
+  full_name: "SemEval 2021 Task 6 - Medication Mining"
+  type: "ner+relation"
+  task_level: "1+2"  # Both levels
+
+  data:
+    source: "physionet"
+    train_size: 3500
+    dev_size: 400
+    test_size: 2000
+
+  # Split into two sub-tasks for hierarchical MTL
+  subtasks:
+    level1:
+      name: "semeval2021t6_level1"
+      type: "ner"
+      primary_metric: "strict_f1"
+
+    level2:
+      name: "semeval2021t6_level2"
+      type: "relation"
+      primary_metric: "relation_f1"
+
+  evaluation:
+    primary_metric: "combined_f1"  # Average of NER and RE
+    secondary_metrics: ["ner_f1", "relation_f1"]
+    eval_script: "official"
+    published_sota: 0.745
+    sota_system: "IHS_RD"
+
+  preprocessing:
+    max_seq_len: null
+    entity_handling: "ner+relation"
+
+  contamination:
+    risk: "low"  # most recent task
+    zero_shot_threshold: 0.52

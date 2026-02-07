@@ -1,0 +1,25 @@
+task:
+  name: "pubmedqa"
+  full_name: "PubMedQA - Medical Question Answering"
+  type: "ranking"
+  task_level: 2  # Level 2 for hierarchical MTL
+
+  data:
+    source: "public"
+    url: "https://github.com/pubmedqa/pubmedqa"
+    train_size: 450
+    dev_size: 50
+    test_size: 500
+
+  evaluation:
+    primary_metric: "accuracy"
+    secondary_metrics: ["macro_f1"]
+    published_sota: 0.776  # BioBERT
+
+  preprocessing:
+    max_seq_len: 512
+    entity_handling: "sequence"  # question-answer pairs
+
+  contamination:
+    risk: "low"
+    zero_shot_threshold: 0.54

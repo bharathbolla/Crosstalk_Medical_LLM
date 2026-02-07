@@ -1,0 +1,29 @@
+strategy:
+  name: "S4_sequential_transfer"
+  type: "sequential"
+  description: "Sequential fine-tuning: train on tasks in order, transfer knowledge."
+
+  adapter:
+    shared: true
+    shared_rank: 16
+    continual_learning: true
+
+  sequence:
+    # Train in order of task complexity
+    order: ["semeval2014t7", "semeval2015t14", "semeval2021t6_level1",
+            "semeval2016t12", "semeval2017t3", "semeval2021t6_level2"]
+    freeze_after_each: false  # allow adapter to update
+    catastrophic_forgetting_mitigation: "ewc"  # Elastic Weight Consolidation
+
+  training:
+    epochs_per_task: 3
+    early_stopping_patience: 2
+    eval_every_n_steps: 200
+    checkpoint_every_n_steps: 200
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+
+  logging:
+    token_logging: true
+    log_tokens_per_task: true
+    wandb_project: "medical-mtl"

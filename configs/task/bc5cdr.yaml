@@ -1,0 +1,38 @@
+task:
+  name: "bc5cdr"
+  full_name: "BioCreative V CDR - Chemical Disease Relations"
+  type: "ner+relation"
+  task_level: "1+2"  # Both entity and relation
+
+  data:
+    source: "public"
+    url: "https://biocreative.bioinformatics.udel.edu"
+    train_size: 500
+    dev_size: 500
+    test_size: 500
+
+  subtasks:
+    level1:
+      name: "bc5cdr_ner"
+      type: "ner"
+      primary_metric: "strict_f1"
+      labels: ["Chemical", "Disease"]
+
+    level2:
+      name: "bc5cdr_relation"
+      type: "relation"
+      primary_metric: "relation_f1"
+      labels: ["CID"]  # Chemical-Induced-Disease
+
+  evaluation:
+    primary_metric: "combined_f1"
+    secondary_metrics: ["ner_f1", "relation_f1"]
+    published_sota: 0.684  # BioBERT
+
+  preprocessing:
+    max_seq_len: 512
+    entity_handling: "ner+relation"
+
+  contamination:
+    risk: "low"  # public dataset
+    zero_shot_threshold: 0.50

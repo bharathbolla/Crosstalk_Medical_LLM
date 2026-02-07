@@ -1,0 +1,44 @@
+strategy:
+  name: "S5_qlora_mtl"
+  type: "multi_task"
+  description: "Best MTL architecture with QLoRA 4-bit base. Memory-efficient."
+
+  quantization:
+    enabled: true
+    bits: 4
+    quant_type: "nf4"
+    compute_dtype: "float16"
+    double_quant: true
+
+  # Inherit architecture from best of S3a/S3b (determined after Phase 3)
+  architecture:
+    inherit_from: "best_s3"  # placeholder, will be set based on results
+    # Default to hierarchical for now
+    type: "hierarchical"
+    shared_rank: 16
+    level1_rank: 8
+    level2_rank: 8
+    cross_level_attention: true
+
+  gradient:
+    conflict_resolution: "pcgrad"
+    log_conflicts: true
+
+  multitask:
+    sampling: "temperature"
+    temperature: 2.0
+    loss_weighting: "uncertainty"
+
+  training:
+    epochs: 5
+    early_stopping_patience: 3
+    eval_every_n_steps: 200
+    checkpoint_every_n_steps: 200
+    learning_rate: 1e-5  # lower LR for 4-bit
+    warmup_ratio: 0.1
+
+  logging:
+    token_logging: true
+    log_tokens_per_task: true
+    log_gradient_conflicts: true
+    wandb_project: "medical-mtl"

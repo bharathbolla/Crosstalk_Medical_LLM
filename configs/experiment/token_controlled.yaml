@@ -1,0 +1,64 @@
+# Token-Controlled Baseline (RQ5 — CRITICAL)
+# Single-task models trained with SAME total tokens as multi-task
+
+token_control:
+  description: >
+    Multi-task models see tokens from all 5 tasks over training.
+    Token-controlled single-task sees the SAME total token count
+    by oversampling its own task data. This separates genuine
+    cross-task transfer from mere data exposure.
+
+  enabled: true
+  method: "oversample_single_task"
+
+  # After multi-task training, record total_tokens_seen
+  # Then train single-task with that exact count
+  match_to: "S3b_total_tokens"  # match to best multi-task variant
+
+  # Example: If S3b sees 50M tokens total across 5 tasks,
+  # token-controlled S1 for task A also sees 50M tokens,
+  # but all from task A (oversampled)
+
+  tracking:
+    log_tokens_per_step: true
+    log_tokens_per_task: true
+    log_cumulative_tokens: true
+    save_token_counts_to_checkpoint: true
+
+  trainer:
+    use_token_controlled_trainer: true
+    stop_at_target_tokens: true
+    # target_tokens set dynamically based on multi-task run
+
+  comparison:
+    # Compare these three conditions:
+    # 1. Single-task (S1) — baseline, different token counts per task
+    # 2. Multi-task (S3b) — sees tokens from all tasks
+    # 3. Token-controlled S1 — same total tokens as S3b, but single-task
+    conditions:
+      - name: "single_task_baseline"
+        strategy: "S1"
+        token_control: false
+
+      - name: "multi_task"
+        strategy: "S3b"
+        token_control: false
+
+      - name: "token_controlled_baseline"
+        strategy: "S1"
+        token_control: true
+        match_tokens_from: "multi_task"
+
+# Training config
+training:
+  epochs: null  # determined by token target
+  max_steps: null  # determined by token target
+  learning_rate: 2e-5
+  warmup_ratio: 0.1
+  eval_every_n_steps: 200
+  checkpoint_every_n_steps: 200
+
+logging:
+  wandb_project: "medical-mtl-token-control"
+  log_token_distribution: true
+  log_token_parity_check: true

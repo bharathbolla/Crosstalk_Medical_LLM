@@ -1,0 +1,45 @@
+# Main Hydra Configuration
+# Compose experiments: model + task + strategy = experiment
+
+defaults:
+  - model: llama3b  # default model
+  - task: semeval2017t3  # default task (easiest for testing)
+  - strategy: s1_single  # default strategy
+  - _self_
+
+# Global settings
+project:
+  name: "medical-cross-task-transfer"
+  version: "1.0.0"
+  seed: 42
+
+# Paths
+paths:
+  data_dir: "data/"
+  results_dir: "results/"
+  checkpoints_dir: "checkpoints/"
+  logs_dir: "logs/"
+
+# Compute
+compute:
+  device: "cuda"  # auto-detect if available
+  mixed_precision: true
+  compile: false  # torch.compile (slow first run)
+
+# Logging
+logging:
+  wandb:
+    enabled: true
+    entity: null  # set your wandb entity
+    project: "medical-mtl"
+    tags: []
+  console_log_level: "INFO"
+  file_log_level: "DEBUG"
+
+# Hydra
+hydra:
+  run:
+    dir: "outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}"
+  sweep:
+    dir: "multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}"
+    subdir: "${hydra.job.num}"

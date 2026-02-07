@@ -1,0 +1,26 @@
+model:
+  name: "meta-llama/Llama-3.1-8B"
+  short_name: "llama8b"
+  params: 8.0e9
+
+  quantization:
+    enabled: true  # QLoRA required for T4
+    bits: 4
+    quant_type: "nf4"
+    compute_dtype: "float16"
+    double_quant: true
+
+  lora:
+    rank: 32
+    alpha: 64
+    dropout: 0.05
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+  training:
+    max_batch_size_t4: 4
+    gradient_checkpointing: true
+    flash_attention: true
+
+  unsloth:
+    compatible: false
+    use_for: []
