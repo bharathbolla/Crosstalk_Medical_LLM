@@ -106,8 +106,9 @@ def compute_multilabel_metrics(predictions, labels):
     Compute metrics for multi-label classification (HoC).
     """
 
-    # Apply sigmoid and threshold at 0.5
-    predictions = (predictions > 0.5).astype(int)
+    # Apply sigmoid to convert raw logits to probabilities, then threshold
+    probs = 1 / (1 + np.exp(-predictions))  # sigmoid
+    predictions = (probs > 0.3).astype(int)  # Lower threshold for imbalanced data
 
     # Calculate metrics per label, then average
     try:
