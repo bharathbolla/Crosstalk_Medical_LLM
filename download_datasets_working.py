@@ -4,9 +4,13 @@ This script loads each dataset individually from bigbio collection.
 Tested and working as of 2026-02-07.
 """
 
+import sys
+import io
+# Fix Windows encoding
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 from datasets import load_dataset
 from pathlib import Path
-import sys
 
 # Create data directory
 data_path = Path("data/raw")

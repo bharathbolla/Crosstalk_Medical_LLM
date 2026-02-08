@@ -56,7 +56,7 @@ hf_cache/
 transformers_cache/
 
 # Data
-data/raw/
+# data/raw/  # COMMENTED OUT - datasets committed to repo for easy Kaggle access
 data/processed/
 *.csv
 *.json
