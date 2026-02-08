@@ -73,12 +73,6 @@ TASK_CONFIGS = {
         'model_type': 'sequence_classification',
     },
 
-    # Similarity/Regression task
-    'biosses': {
-        'task_type': 'similarity',
-        'labels': None,  # Regression - no labels, just scores
-        'model_type': 'regression',
-    },
 }
 
 
