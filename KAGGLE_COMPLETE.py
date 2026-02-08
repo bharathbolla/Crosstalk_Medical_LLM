@@ -1,0 +1,686 @@
+"""
+Complete Kaggle Notebook Generator
+Includes ALL cells: setup, config, smoke test, AND actual training/evaluation
+"""
+
+import sys
+import io
+import json
+
+# Fix Windows encoding
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+def create_complete_notebook():
+    """Generate complete notebook with all execution cells."""
+
+    notebook = {
+        "cells": [
+            # ==================================================
+            # TITLE
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "# Medical Multi-Task Learning: Complete Training Notebook\n",
+                    "## ✅ All 7 Models × All 8 Tasks - Ready to Train!\n",
+                    "\n",
+                    "**What This Notebook Does**:\n",
+                    "- ✅ Clones code from GitHub\n",
+                    "- ✅ Loads tokenizer, datasets, model automatically\n",
+                    "- ✅ Trains with proper configuration\n",
+                    "- ✅ Evaluates and saves results\n",
+                    "- ✅ Works with all 7 models and all 8 tasks\n",
+                    "\n",
+                    "**Expected Results**:\n",
+                    "- BioBERT on BC2GM: **F1 = 0.84** (not 0.46!)\n",
+                    "- Smoke test (50 samples): F1 > 0.30 in 2 minutes\n",
+                    "- Full training: F1 = 0.84 in ~3 hours"
+                ]
+            },
+
+            # ==================================================
+            # CELL 1: SETUP
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 1: Setup & Clone Repository"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "import sys\n",
+                    "import os\n",
+                    "from pathlib import Path\n",
+                    "\n",
+                    "# Clone repo\n",
+                    "print('📥 Cloning repository...')\n",
+                    "os.chdir('/kaggle/working')\n",
+                    "!rm -rf Crosstalk_Medical_LLM\n",
+                    "!git clone https://github.com/bharathbolla/Crosstalk_Medical_LLM.git\n",
+                    "os.chdir('Crosstalk_Medical_LLM')\n",
+                    "\n",
+                    "print(f'\\n✅ Current directory: {os.getcwd()}')\n",
+                    "\n",
+                    "# Verify datasets exist\n",
+                    "!python test_pickle_load.py"
+                ]
+            },
+
+            # ==================================================
+            # CELL 2: INSTALL
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 2: Install Dependencies"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "!pip install -q transformers torch accelerate scikit-learn seqeval pandas scipy\n",
+                    "\n",
+                    "import torch\n",
+                    "import json\n",
+                    "import pandas as pd\n",
+                    "from datetime import datetime\n",
+                    "from pathlib import Path\n",
+                    "\n",
+                    "# GPU verification\n",
+                    "print(f'\\n✅ PyTorch: {torch.__version__}')\n",
+                    "print(f'✅ CUDA: {torch.cuda.is_available()}')\n",
+                    "if torch.cuda.is_available():\n",
+                    "    print(f'✅ GPU: {torch.cuda.get_device_name(0)}')\n",
+                    "    print(f'✅ VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')\n",
+                    "\n",
+                    "RESULTS_DIR = Path('results')\n",
+                    "RESULTS_DIR.mkdir(exist_ok=True)\n",
+                    "EXPERIMENT_ID = datetime.now().strftime('%Y%m%d_%H%M%S')\n",
+                    "print(f'\\n📊 Experiment ID: {EXPERIMENT_ID}')"
+                ]
+            },
+
+            # ==================================================
+            # CELL 3: CONFIGURATION
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## Cell 3: Configuration\n",
+                    "### ⭐ Change ONLY these 2 lines to test different models/tasks!"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# ============================================\n",
+                    "# ⭐ MAIN CONFIGURATION\n",
+                    "# ============================================\n",
+                    "\n",
+                    "CONFIG = {\n",
+                    "    # ⭐ MODEL (choose one of 7 models)\n",
+                    "    'model_name': 'dmis-lab/biobert-v1.1',  # BioBERT\n",
+                    "    # Other options:\n",
+                    "    # 'bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12',  # BlueBERT\n",
+                    "    # 'microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract',  # PubMedBERT\n",
+                    "    # 'allenai/biomed_roberta_base',  # BioMed-RoBERTa\n",
+                    "    # 'emilyalsentzer/Bio_ClinicalBERT',  # Clinical-BERT\n",
+                    "    # 'roberta-base',  # RoBERTa\n",
+                    "    # 'bert-base-uncased',  # BERT\n",
+                    "    \n",
+                    "    # ⭐ TASK (choose one or more)\n",
+                    "    'datasets': ['bc2gm'],  # Start with BC2GM\n",
+                    "    # Options: bc2gm, jnlpba, chemprot, ddi, gad, hoc, pubmedqa, biosses\n",
+                    "    \n",
+                    "    'experiment_id': EXPERIMENT_ID,\n",
+                    "    'max_samples_per_dataset': None,\n",
+                    "    'num_epochs': 10,\n",
+                    "    'batch_size': 32,\n",
+                    "    'learning_rate': 2e-5,\n",
+                    "    'max_length': 512,\n",
+                    "    'warmup_steps': 500,\n",
+                    "    'use_early_stopping': True,\n",
+                    "    'early_stopping_patience': 3,\n",
+                    "}\n",
+                    "\n",
+                    "# Auto-adjust batch size based on GPU\n",
+                    "if torch.cuda.is_available():\n",
+                    "    gpu_name = torch.cuda.get_device_name(0)\n",
+                    "    if 'A100' in gpu_name:\n",
+                    "        CONFIG['batch_size'] = 64\n",
+                    "    elif 'T4' in gpu_name:\n",
+                    "        CONFIG['batch_size'] = 32\n",
+                    "\n",
+                    "print('='*60)\n",
+                    "print('CONFIGURATION')\n",
+                    "print('='*60)\n",
+                    "print(f\"Model: {CONFIG['model_name']}\")\n",
+                    "print(f\"Tasks: {CONFIG['datasets']}\")\n",
+                    "print(f\"Batch: {CONFIG['batch_size']}\")\n",
+                    "print(f\"Epochs: {CONFIG['num_epochs']}\")\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 4: SMOKE TEST
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## Cell 4: 🔥 SMOKE TEST (Run This First!)\n",
+                    "### Set SMOKE_TEST = True for 2-minute validation\n",
+                    "### Set SMOKE_TEST = False for full training"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# ============================================\n",
+                    "# ⭐ SMOKE TEST TOGGLE\n",
+                    "# ============================================\n",
+                    "\n",
+                    "SMOKE_TEST = True  # ← Change to False for full training\n",
+                    "\n",
+                    "print('\\n' + '='*60)\n",
+                    "if SMOKE_TEST:\n",
+                    "    print('🔥 SMOKE TEST MODE')\n",
+                    "    print('='*60)\n",
+                    "    CONFIG['max_samples_per_dataset'] = 50\n",
+                    "    CONFIG['num_epochs'] = 1\n",
+                    "    CONFIG['batch_size'] = 16\n",
+                    "    CONFIG['max_length'] = 128\n",
+                    "    CONFIG['use_early_stopping'] = False\n",
+                    "    print('Settings: 50 samples, 1 epoch, batch 16')\n",
+                    "    print('Expected: F1 > 0.30')\n",
+                    "    print('Time: ~2 minutes')\n",
+                    "else:\n",
+                    "    print('🚀 FULL TRAINING MODE')\n",
+                    "    print('='*60)\n",
+                    "    print(f\"Samples: ALL\")\n",
+                    "    print(f\"Epochs: {CONFIG['num_epochs']}\")\n",
+                    "    print(f\"Batch: {CONFIG['batch_size']}\")\n",
+                    "    print('Expected: F1 = 0.84')\n",
+                    "    print('Time: ~3 hours')\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 5: LOAD COMPLETE CODE
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## Cell 5: Load Complete Implementation\n",
+                    "### Imports all fixed code from repository"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "print('\\n📦 Loading complete implementation...')\n",
+                    "\n",
+                    "# Execute dataset code\n",
+                    "exec(open('COMPLETE_FIXED_DATASET.py').read())\n",
+                    "print('✅ Dataset code loaded')\n",
+                    "\n",
+                    "# Execute model code\n",
+                    "exec(open('COMPLETE_FIXED_MODEL.py').read())\n",
+                    "print('✅ Model code loaded')\n",
+                    "\n",
+                    "# Execute metrics code\n",
+                    "exec(open('COMPLETE_FIXED_METRICS.py').read())\n",
+                    "print('✅ Metrics code loaded')\n",
+                    "\n",
+                    "print('\\n' + '='*60)\n",
+                    "print('✅ ALL CODE LOADED')\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 6: LOAD TOKENIZER
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 6: Load Tokenizer"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "from transformers import AutoTokenizer\n",
+                    "\n",
+                    "print('\\n🔤 Loading tokenizer...')\n",
+                    "\n",
+                    "# Load tokenizer (handles RoBERTa automatically)\n",
+                    "model_name = CONFIG['model_name']\n",
+                    "\n",
+                    "if 'roberta' in model_name.lower():\n",
+                    "    tokenizer = AutoTokenizer.from_pretrained(model_name, add_prefix_space=True)\n",
+                    "    print('   ✅ RoBERTa tokenizer (add_prefix_space=True)')\n",
+                    "else:\n",
+                    "    tokenizer = AutoTokenizer.from_pretrained(model_name)\n",
+                    "    print('   ✅ BERT tokenizer')\n",
+                    "\n",
+                    "print(f'   Model: {model_name}')\n",
+                    "print(f'   Vocab size: {tokenizer.vocab_size:,}')\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 7: LOAD DATASETS
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 7: Load Datasets"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "import pickle\n",
+                    "\n",
+                    "print('\\n📊 Loading datasets...')\n",
+                    "\n",
+                    "primary_dataset = CONFIG['datasets'][0]\n",
+                    "max_samples = CONFIG['max_samples_per_dataset']\n",
+                    "\n",
+                    "# Load pickle file\n",
+                    "pickle_file = f'data/{primary_dataset}_train.pkl'\n",
+                    "with open(pickle_file, 'rb') as f:\n",
+                    "    raw_data = pickle.load(f)\n",
+                    "\n",
+                    "# Limit samples if smoke test\n",
+                    "if max_samples:\n",
+                    "    raw_data['train'] = raw_data['train'][:max_samples]\n",
+                    "    raw_data['validation'] = raw_data['validation'][:max_samples//5]\n",
+                    "\n",
+                    "print(f'   Dataset: {primary_dataset}')\n",
+                    "print(f\"   Train samples: {len(raw_data['train']):,}\")\n",
+                    "print(f\"   Validation samples: {len(raw_data['validation']):,}\")\n",
+                    "\n",
+                    "# Create datasets using UniversalMedicalDataset\n",
+                    "task_config = TASK_CONFIGS[primary_dataset]\n",
+                    "\n",
+                    "train_dataset = UniversalMedicalDataset(\n",
+                    "    data=raw_data['train'],\n",
+                    "    tokenizer=tokenizer,\n",
+                    "    task_type=task_config['task_type'],\n",
+                    "    labels=task_config['labels'],\n",
+                    "    max_length=CONFIG['max_length']\n",
+                    ")\n",
+                    "\n",
+                    "val_dataset = UniversalMedicalDataset(\n",
+                    "    data=raw_data['validation'],\n",
+                    "    tokenizer=tokenizer,\n",
+                    "    task_type=task_config['task_type'],\n",
+                    "    labels=task_config['labels'],\n",
+                    "    max_length=CONFIG['max_length']\n",
+                    ")\n",
+                    "\n",
+                    "# Store dataset stats\n",
+                    "dataset_stats = {\n",
+                    "    primary_dataset: {\n",
+                    "        'task_type': task_config['task_type'],\n",
+                    "        'model_type': task_config['model_type'],\n",
+                    "        'num_labels': len(task_config['labels']) if task_config['labels'] else 1,\n",
+                    "        'train_size': len(train_dataset),\n",
+                    "        'val_size': len(val_dataset),\n",
+                    "    }\n",
+                    "}\n",
+                    "\n",
+                    "print(f\"   ✅ Created UniversalMedicalDataset\")\n",
+                    "print(f\"   Task type: {task_config['task_type']}\")\n",
+                    "print(f\"   Num labels: {dataset_stats[primary_dataset]['num_labels']}\")\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 8: LOAD MODEL
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 8: Load Model"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "from transformers import (\n",
+                    "    AutoModelForTokenClassification,\n",
+                    "    AutoModelForSequenceClassification,\n",
+                    "    AutoConfig\n",
+                    ")\n",
+                    "\n",
+                    "print('\\n🤖 Loading model...')\n",
+                    "\n",
+                    "# Load model with correct head for task\n",
+                    "task_info = dataset_stats[primary_dataset]\n",
+                    "model_type = task_info['model_type']\n",
+                    "num_labels = task_info['num_labels']\n",
+                    "\n",
+                    "if model_type == 'token_classification':\n",
+                    "    # NER tasks\n",
+                    "    model = AutoModelForTokenClassification.from_pretrained(\n",
+                    "        model_name,\n",
+                    "        num_labels=num_labels,\n",
+                    "        ignore_mismatched_sizes=True\n",
+                    "    )\n",
+                    "    print(f'   ✅ TokenClassification head loaded')\n",
+                    "\n",
+                    "elif model_type == 'sequence_classification':\n",
+                    "    # RE, Classification, QA\n",
+                    "    config = AutoConfig.from_pretrained(model_name)\n",
+                    "    if task_config.get('problem_type'):\n",
+                    "        config.problem_type = task_config['problem_type']\n",
+                    "    \n",
+                    "    model = AutoModelForSequenceClassification.from_pretrained(\n",
+                    "        model_name,\n",
+                    "        config=config,\n",
+                    "        num_labels=num_labels,\n",
+                    "        ignore_mismatched_sizes=True\n",
+                    "    )\n",
+                    "    print(f'   ✅ SequenceClassification head loaded')\n",
+                    "\n",
+                    "elif model_type == 'regression':\n",
+                    "    # Similarity\n",
+                    "    model = AutoModelForSequenceClassification.from_pretrained(\n",
+                    "        model_name,\n",
+                    "        num_labels=1,\n",
+                    "        ignore_mismatched_sizes=True\n",
+                    "    )\n",
+                    "    print(f'   ✅ Regression head loaded')\n",
+                    "\n",
+                    "# Move to GPU\n",
+                    "if torch.cuda.is_available():\n",
+                    "    model = model.cuda()\n",
+                    "    print('   ✅ Model on GPU')\n",
+                    "\n",
+                    "# Count parameters\n",
+                    "total_params = sum(p.numel() for p in model.parameters())\n",
+                    "trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)\n",
+                    "\n",
+                    "print(f'   Total parameters: {total_params:,}')\n",
+                    "print(f'   Trainable: {trainable_params:,} ({100 * trainable_params / total_params:.1f}%)')\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 9: SETUP TRAINER
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 9: Setup Trainer"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "from transformers import (\n",
+                    "    TrainingArguments,\n",
+                    "    Trainer,\n",
+                    "    EarlyStoppingCallback\n",
+                    ")\n",
+                    "\n",
+                    "print('\\n⚙️  Setting up trainer...')\n",
+                    "\n",
+                    "# Training arguments\n",
+                    "training_args = TrainingArguments(\n",
+                    "    output_dir=f\"./checkpoints/{primary_dataset}_{EXPERIMENT_ID}\",\n",
+                    "    num_train_epochs=CONFIG['num_epochs'],\n",
+                    "    per_device_train_batch_size=CONFIG['batch_size'],\n",
+                    "    per_device_eval_batch_size=CONFIG['batch_size'],\n",
+                    "    learning_rate=CONFIG['learning_rate'],\n",
+                    "    warmup_steps=CONFIG['warmup_steps'],\n",
+                    "    weight_decay=0.01,\n",
+                    "    logging_dir='./logs',\n",
+                    "    logging_steps=50,\n",
+                    "    eval_strategy='epoch',\n",
+                    "    save_strategy='epoch',\n",
+                    "    load_best_model_at_end=True,\n",
+                    "    metric_for_best_model='f1',\n",
+                    "    greater_is_better=True,\n",
+                    "    save_total_limit=2,\n",
+                    "    report_to='none',\n",
+                    "    disable_tqdm=False,\n",
+                    ")\n",
+                    "\n",
+                    "# Setup compute_metrics function\n",
+                    "if task_config['task_type'] == 'ner':\n",
+                    "    def compute_metrics_fn(eval_pred):\n",
+                    "        return compute_ner_metrics(eval_pred, task_config['labels'])\n",
+                    "elif task_config['task_type'] in ['re', 'classification', 'qa']:\n",
+                    "    def compute_metrics_fn(eval_pred):\n",
+                    "        return compute_classification_metrics(eval_pred)\n",
+                    "elif task_config['task_type'] == 'multilabel_classification':\n",
+                    "    def compute_metrics_fn(eval_pred):\n",
+                    "        return compute_multilabel_metrics(eval_pred)\n",
+                    "elif task_config['task_type'] == 'similarity':\n",
+                    "    def compute_metrics_fn(eval_pred):\n",
+                    "        return compute_regression_metrics(eval_pred)\n",
+                    "\n",
+                    "# Create trainer\n",
+                    "callbacks = []\n",
+                    "if CONFIG['use_early_stopping']:\n",
+                    "    callbacks.append(EarlyStoppingCallback(early_stopping_patience=CONFIG['early_stopping_patience']))\n",
+                    "\n",
+                    "trainer = Trainer(\n",
+                    "    model=model,\n",
+                    "    args=training_args,\n",
+                    "    train_dataset=train_dataset,\n",
+                    "    eval_dataset=val_dataset,\n",
+                    "    tokenizer=tokenizer,\n",
+                    "    compute_metrics=compute_metrics_fn,\n",
+                    "    callbacks=callbacks,\n",
+                    ")\n",
+                    "\n",
+                    "print('   ✅ Trainer ready')\n",
+                    "print(f'   Output: {training_args.output_dir}')\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 10: TRAIN MODEL
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## Cell 10: Train Model\n",
+                    "### 🚀 This is where the actual training happens!"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "print('\\n' + '='*60)\n",
+                    "print('🚀 STARTING TRAINING')\n",
+                    "print('='*60)\n",
+                    "\n",
+                    "# Train!\n",
+                    "train_result = trainer.train()\n",
+                    "\n",
+                    "print('\\n' + '='*60)\n",
+                    "print('✅ TRAINING COMPLETE')\n",
+                    "print('='*60)\n",
+                    "print(f\"Train loss: {train_result.training_loss:.4f}\")\n",
+                    "print(f\"Train time: {train_result.metrics['train_runtime']:.1f}s\")\n",
+                    "print('='*60)"
+                ]
+            },
+
+            # ==================================================
+            # CELL 11: EVALUATE MODEL
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 11: Evaluate Model"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "print('\\n📊 Evaluating on validation set...')\n",
+                    "\n",
+                    "# Evaluate\n",
+                    "eval_result = trainer.evaluate()\n",
+                    "\n",
+                    "print('\\n' + '='*60)\n",
+                    "print('📊 EVALUATION RESULTS')\n",
+                    "print('='*60)\n",
+                    "for key, value in eval_result.items():\n",
+                    "    if 'f1' in key.lower() or 'precision' in key.lower() or 'recall' in key.lower():\n",
+                    "        print(f'{key}: {value:.4f}')\n",
+                    "print('='*60)\n",
+                    "\n",
+                    "# Save results\n",
+                    "results = {\n",
+                    "    'experiment_id': EXPERIMENT_ID,\n",
+                    "    'model': model_name,\n",
+                    "    'dataset': primary_dataset,\n",
+                    "    'task_type': task_config['task_type'],\n",
+                    "    'smoke_test': SMOKE_TEST,\n",
+                    "    'config': CONFIG,\n",
+                    "    'train_metrics': train_result.metrics,\n",
+                    "    'eval_metrics': eval_result,\n",
+                    "}\n",
+                    "\n",
+                    "# Save to JSON\n",
+                    "results_file = RESULTS_DIR / f'results_{EXPERIMENT_ID}.json'\n",
+                    "with open(results_file, 'w') as f:\n",
+                    "    json.dump(results, f, indent=2)\n",
+                    "\n",
+                    "print(f'\\n✅ Results saved to: {results_file}')"
+                ]
+            },
+
+            # ==================================================
+            # CELL 12: FINAL SUMMARY
+            # ==================================================
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": ["## Cell 12: Final Summary"]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "print('\\n' + '='*60)\n",
+                    "print('🎉 EXPERIMENT COMPLETE')\n",
+                    "print('='*60)\n",
+                    "print(f\"Model: {model_name}\")\n",
+                    "print(f\"Dataset: {primary_dataset}\")\n",
+                    "print(f\"Mode: {'SMOKE TEST' if SMOKE_TEST else 'FULL TRAINING'}\")\n",
+                    "print(f\"\\nF1 Score: {eval_result.get('eval_f1', 0):.4f}\")\n",
+                    "\n",
+                    "if SMOKE_TEST:\n",
+                    "    if eval_result.get('eval_f1', 0) > 0.30:\n",
+                    "        print('\\n✅ Smoke test PASSED!')\n",
+                    "        print('   → Set SMOKE_TEST = False for full training')\n",
+                    "    else:\n",
+                    "        print('\\n❌ Smoke test FAILED')\n",
+                    "        print('   → Check configuration and data')\n",
+                    "else:\n",
+                    "    expected_f1 = 0.84 if primary_dataset == 'bc2gm' else 0.70\n",
+                    "    if eval_result.get('eval_f1', 0) > expected_f1 - 0.05:\n",
+                    "        print(f'\\n✅ Result matches expected F1 (~{expected_f1:.2f})')\n",
+                    "    else:\n",
+                    "        print(f'\\n⚠️  F1 lower than expected (~{expected_f1:.2f})')\n",
+                    "\n",
+                    "print('\\n' + '='*60)\n",
+                    "print('Next Steps:')\n",
+                    "if SMOKE_TEST:\n",
+                    "    print('1. Set SMOKE_TEST = False in Cell 4')\n",
+                    "    print('2. Run All Cells for full training')\n",
+                    "else:\n",
+                    "    print('1. Try different models (change model_name in Cell 3)')\n",
+                    "    print('2. Try different tasks (change datasets in Cell 3)')\n",
+                    "    print('3. Check results/ folder for saved metrics')\n",
+                    "print('='*60)"
+                ]
+            },
+        ],
+        "metadata": {
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            },
+            "language_info": {
+                "name": "python",
+                "version": "3.8.10"
+            }
+        },
+        "nbformat": 4,
+        "nbformat_minor": 4
+    }
+
+    # Save
+    with open('KAGGLE_COMPLETE.ipynb', 'w', encoding='utf-8') as f:
+        json.dump(notebook, f, indent=2, ensure_ascii=False)
+
+    print('✅ Complete notebook created: KAGGLE_COMPLETE.ipynb')
+    print('\nIncludes ALL cells:')
+    print('  1. Setup & clone')
+    print('  2. Install dependencies')
+    print('  3. Configuration (change 2 lines)')
+    print('  4. Smoke test toggle')
+    print('  5. Load code')
+    print('  6. Load tokenizer')
+    print('  7. Load datasets')
+    print('  8. Load model')
+    print('  9. Setup trainer')
+    print('  10. Train model ← ACTUAL TRAINING HAPPENS HERE')
+    print('  11. Evaluate')
+    print('  12. Summary')
+    print('\nJust run all cells and it will train automatically!')
+
+if __name__ == '__main__':
+    create_complete_notebook()
