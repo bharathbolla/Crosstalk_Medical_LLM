@@ -1,4 +1,7 @@
-"""Test script to verify all parsers work correctly (ChemProt disabled)."""
+"""Test script to verify all parsers work correctly.
+
+All datasets are now included in the repository!
+"""
 
 import sys
 import io
@@ -13,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from data import (
     BC2GMDataset,
     JNLPBADataset,
-    # ChemProtDataset,  # Disabled: Parquet URL compatibility issues
+    ChemProtDataset,  # Re-enabled: Dataset now in repo
     DDIDataset,
     GADDataset,
     HoCDataset,
@@ -73,15 +76,16 @@ def main():
     print("=" * 60)
     print("PARSER TESTING SUITE")
     print("=" * 60)
-    print("Testing 7 medical NLP dataset parsers (ChemProt disabled)...")
+    print("Testing 8 medical NLP dataset parsers...")
+    print("All datasets are included in the repository!")
 
     results = {}
 
-    # Test each parser (ChemProt excluded)
+    # Test each parser (all datasets now included in repo!)
     parsers = [
         (BC2GMDataset, "bc2gm"),
         (JNLPBADataset, "jnlpba"),
-        # (ChemProtDataset, "chemprot"),  # Disabled: Parquet URL compatibility issues
+        (ChemProtDataset, "chemprot"),  # Re-enabled: Dataset now in repo
         (DDIDataset, "ddi"),
         (GADDataset, "gad"),
         (HoCDataset, "hoc"),
