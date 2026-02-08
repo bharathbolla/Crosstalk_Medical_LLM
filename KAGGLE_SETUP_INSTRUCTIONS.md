@@ -40,11 +40,12 @@ ERROR: Dataset scripts are no longer supported, but found blurb.py
 
 #### Cell 2: Install Dependencies (WITH FIX!)
 ```python
-# Install packages with correct datasets version
+# Install packages with compatible versions
 !pip install -q transformers evaluate wandb accelerate scikit-learn pyyaml
-!pip install -q datasets==2.14.0  # ⚠️ CRITICAL: Use 2.14.0, not latest!
+!pip install -q pyarrow==12.0.1 datasets==2.14.0  # ⚠️ CRITICAL: Compatible versions!
 
 print("✅ Dependencies installed!")
+print("   Note: Using datasets==2.14.0 + pyarrow==12.0.1 for bigbio compatibility")
 ```
 
 #### Cell 3: Verify GPU
@@ -143,10 +144,23 @@ This notebook has all cells pre-configured with the fix!
 
 **Fix**: Downgrade to 2.14.0
 ```python
-!pip install -q datasets==2.14.0
+!pip install -q pyarrow==12.0.1 datasets==2.14.0
 ```
 
 Then **restart the kernel** and re-run the download cell.
+
+---
+
+### Error: "AttributeError: module 'pyarrow' has no attribute 'PyExtensionType'"
+
+**Cause**: `datasets==2.14.0` is incompatible with newer `pyarrow` versions (14.x+)
+
+**Fix**: Downgrade both packages together
+```python
+!pip install -q pyarrow==12.0.1 datasets==2.14.0
+```
+
+Then **restart the kernel** and re-run all cells.
 
 ---
 
