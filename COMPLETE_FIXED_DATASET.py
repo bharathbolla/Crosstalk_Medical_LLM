@@ -39,24 +39,29 @@ TASK_CONFIGS = {
     # Relation Extraction - sequence classification
     'chemprot': {
         'task_type': 're',
-        'labels': [f'CPR:{i}' for i in range(13)],  # 13 relation types
+        'labels': ['Agonist', 'Antagonist', 'Cofactor', 'Downregulator', 'Modulator',
+                    'Not', 'Part_of', 'Regulator', 'Substrate', 'Undefined', 'Upregulator'],
         'model_type': 'sequence_classification',
     },
     'ddi': {
         'task_type': 're',
-        'labels': ['DDI-false', 'DDI-mechanism', 'DDI-effect', 'DDI-advise', 'DDI-int'],
+        'labels': ['ADVISE', 'EFFECT', 'INT', 'MECHANISM'],
         'model_type': 'sequence_classification',
     },
 
     # Classification tasks
     'gad': {
         'task_type': 'classification',
-        'labels': ['0', '1'],  # Binary: no association, association
+        'labels': [0, 1],  # Binary: 0=no association, 1=association
         'model_type': 'sequence_classification',
     },
     'hoc': {
         'task_type': 'multilabel_classification',
-        'labels': [f'hallmark_{i}' for i in range(10)],  # 10 hallmarks
+        'labels': ['activating invasion and metastasis', 'avoiding immune destruction',
+                    'cellular energetics', 'enabling replicative immortality',
+                    'evading growth suppressors', 'genomic instability and mutation',
+                    'inducing angiogenesis', 'resisting cell death',
+                    'sustaining proliferative signaling', 'tumor promoting inflammation'],
         'model_type': 'sequence_classification',
         'problem_type': 'multi_label_classification',
     },
@@ -64,7 +69,7 @@ TASK_CONFIGS = {
     # QA task
     'pubmedqa': {
         'task_type': 'qa',
-        'labels': ['no', 'yes', 'maybe'],
+        'labels': ['maybe', 'no', 'yes'],
         'model_type': 'sequence_classification',
     },
 
@@ -190,12 +195,16 @@ class UniversalMedicalDataset(Dataset):
 
         # Get text and relation label
         if 'tokens' in item:
-            # If tokens provided, join them
             tokens = item['tokens']
             text = ' '.join(tokens)
         else:
-            # Otherwise use text directly
             text = item.get('text', item.get('sentence', ''))
+
+        # Add entity markers so model knows which pair to classify
+        entity1 = item.get('entity1', '')
+        entity2 = item.get('entity2', '')
+        if entity1 and entity2:
+            text = f"[E1] {entity1} [/E1] [E2] {entity2} [/E2] {text}"
 
         # Get relation label
         relation = item.get('relation', item.get('label', 0))
@@ -245,17 +254,20 @@ class UniversalMedicalDataset(Dataset):
 
         # For multi-label (HoC), convert to binary vector
         if self.task_type == 'multilabel_classification':
-            if isinstance(label, list):
-                # Already a list of label IDs
+            if isinstance(label, list) and len(label) == len(self.labels):
+                # Already a multi-hot vector from pickle
+                label = torch.tensor([float(x) for x in label], dtype=torch.float)
+            elif isinstance(label, list):
+                # List of label IDs - convert to multi-hot
                 label_vector = [0.0] * len(self.labels)
                 for l in label:
-                    if l < len(self.labels):
+                    if isinstance(l, int) and l < len(self.labels):
                         label_vector[l] = 1.0
                 label = torch.tensor(label_vector, dtype=torch.float)
             else:
                 # Single label - convert to one-hot
                 label_vector = [0.0] * len(self.labels)
-                if label < len(self.labels):
+                if isinstance(label, int) and label < len(self.labels):
                     label_vector[label] = 1.0
                 label = torch.tensor(label_vector, dtype=torch.float)
         else:
@@ -292,16 +304,17 @@ class UniversalMedicalDataset(Dataset):
     def _process_qa(self, item):
         """Process QA tasks with question-context pairs."""
 
-        # Get question and context
-        question = item.get('question', item.get('QUESTION', ''))
-        context = item.get('context', item.get('CONTEXTS', ''))
-
-        # If context is a list, join it
-        if isinstance(context, list):
-            context = ' '.join(context)
+        # Get text - pickle stores pre-joined text, or separate question/context
+        text = item.get('text', '')
+        if not text:
+            question = item.get('question', '')
+            context = item.get('context', '')
+            if isinstance(context, list):
+                context = ' '.join(context)
+            text = f"{question} {context}".strip()
 
         # Get answer label
-        answer = item.get('answer', item.get('final_decision', 'maybe'))
+        answer = item.get('label', item.get('answer', item.get('final_decision', 'maybe')))
 
         # Convert answer to ID
         if isinstance(answer, str):
@@ -311,13 +324,12 @@ class UniversalMedicalDataset(Dataset):
             else:
                 answer = 2  # Default to 'maybe' if unknown
 
-        # Tokenize question + context pair
+        # Tokenize text
         encoding = self.tokenizer(
-            question,
-            context,
+            text,
             max_length=self.max_length,
             padding='max_length',
-            truncation='only_second',  # Truncate context, not question
+            truncation=True,
             return_tensors='pt'
         )
 
