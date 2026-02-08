@@ -81,8 +81,8 @@ logs/
 *.tar.gz
 *.zip
 *.h5
-*.pkl
-*.pickle
+# *.pkl  # COMMENTED OUT - we use .pkl files for Kaggle (no dependencies)
+# *.pickle
 
 # Temporary files
 tmp/
