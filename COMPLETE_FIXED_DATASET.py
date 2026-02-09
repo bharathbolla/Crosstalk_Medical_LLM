@@ -486,34 +486,5 @@ def load_all_datasets(dataset_names, tokenizer, max_length=512, max_samples=None
     return train_datasets, val_datasets, test_datasets, dataset_stats
 
 
-# ============================================
-# USAGE EXAMPLE (for Cell 8 in notebook)
-# ============================================
-
-if __name__ == "__main__":
-    """
-    Example usage - copy this to Cell 8 in your Kaggle notebook
-    """
-
-    print("\n🤖 Loading tokenizer...")
-    tokenizer = load_tokenizer(CONFIG['model_name'])
-
-    print("\n📦 Loading datasets...")
-    print("="*60)
-
-    train_datasets, val_datasets, test_datasets, dataset_stats = load_all_datasets(
-        dataset_names=CONFIG['datasets'],
-        tokenizer=tokenizer,
-        max_length=CONFIG.get('max_length', 512),
-        max_samples=CONFIG.get('max_samples_per_dataset', None)
-    )
-
-    print("\n" + "="*60)
-    print(f"✅ Loaded {len(CONFIG['datasets'])} dataset(s)")
-    print("="*60)
-
-    # Show dataset stats
-    for dataset_name, stats in dataset_stats.items():
-        print(f"\n{dataset_name.upper()}:")
-        for key, value in stats.items():
-            print(f"  {key}: {value}")
+# Note: __main__ block removed to prevent execution during exec() in Jupyter notebooks.
+# To test standalone: python -c "from COMPLETE_FIXED_DATASET import *; print('OK')"
